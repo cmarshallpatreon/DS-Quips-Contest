@@ -238,11 +238,8 @@ let state = {
 
 async function api(action, payload){
   const body = Object.assign({action}, payload||{});
-  const res = await fetch(SCRIPT_URL, {
-    method: 'POST',
-    headers: {'Content-Type': 'text/plain;charset=utf-8'},
-    body: JSON.stringify(body)
-  });
+  const url = SCRIPT_URL + '?payload=' + encodeURIComponent(JSON.stringify(body));
+  const res = await fetch(url, { method: 'GET' });
   const data = await res.json();
   if(data && data.error) throw new Error(data.error);
   return data;
