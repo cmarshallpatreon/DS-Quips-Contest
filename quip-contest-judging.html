@@ -1,0 +1,687 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Spaghetti Quip Contest Judging</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Work+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap');
+
+:root{
+  --bg: #0F0D0E;
+  --surface: #1A1715;
+  --surface-2: #221E1B;
+  --line: #3A322C;
+  --text: #F2EAE0;
+  --text-dim: #B8AC9E;
+  --gold: #E8B34A;
+  --gold-dim: #8A6A2E;
+  --velvet: #7A2E2E;
+  --velvet-bright: #C24E4E;
+}
+
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background: var(--bg);
+  color: var(--text);
+  font-family:'Work Sans', sans-serif;
+  min-height:100vh;
+  background-image:
+    radial-gradient(ellipse at 50% -10%, rgba(232,179,74,0.08), transparent 60%);
+}
+
+.wrap{max-width:900px; margin:0 auto; padding:28px 20px 80px;}
+
+.marquee{
+  font-family:'Bebas Neue', sans-serif;
+  letter-spacing:0.04em;
+  font-size:32px;
+  line-height:1.05;
+  color: var(--gold);
+  text-shadow: 0 0 18px rgba(232,179,74,0.35);
+  margin:0 0 4px;
+}
+.sub{color:var(--text-dim); font-size:14px; margin:0 0 22px;}
+
+.tabs{display:flex; gap:6px; border-bottom:1px solid var(--line); margin-bottom:24px;}
+.tab{
+  font-family:'Bebas Neue', sans-serif;
+  letter-spacing:0.05em;
+  font-size:18px;
+  background:none; border:none; color:var(--text-dim);
+  padding:10px 16px; cursor:pointer; position:relative; top:1px;
+}
+.tab.active{color:var(--gold); border-bottom:2px solid var(--gold);}
+.tab:hover{color:var(--text);}
+
+.card{
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:4px;
+  padding:20px;
+}
+
+.filmstrip{
+  display:flex; gap:2px; overflow-x:auto; padding:10px 0 16px;
+  scrollbar-width: thin;
+}
+.frame{
+  flex:0 0 auto;
+  width:88px; height:64px;
+  background:var(--surface-2);
+  border:1px solid var(--line);
+  border-radius:2px;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  cursor:pointer;
+  position:relative;
+  font-family:'IBM Plex Mono', monospace;
+  color:var(--text-dim);
+  transition: border-color .15s;
+}
+.frame::before, .frame::after{
+  content:''; position:absolute; left:0; right:0; height:5px;
+  background-image: repeating-linear-gradient(90deg, var(--bg) 0 6px, transparent 6px 12px);
+}
+.frame::before{top:-1px;} .frame::after{bottom:-1px;}
+.frame:hover{border-color: var(--gold-dim);}
+.frame.active{border-color:var(--gold); color:var(--gold);}
+.frame .fnum{font-size:11px; opacity:0.7;}
+.frame .ftitle{font-size:9px; color:var(--text); text-align:center; padding:0 4px; margin-top:2px; max-width:80px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+.frame .dot{position:absolute; top:6px; right:6px; width:6px; height:6px; border-radius:50%; background:var(--line);}
+.frame.rated .dot{background:var(--gold);}
+.frame.disqualified{opacity:0.5;}
+.frame.disqualified .ftitle{text-decoration:line-through;}
+.frame.disqualified .dot{background:var(--velvet-bright) !important;}
+
+.now-screening{margin-top:8px;}
+.entry-title{font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:0.03em; color:var(--text); margin:0;}
+.entry-meta{color:var(--text-dim); font-size:13px; margin:4px 0 18px; font-family:'IBM Plex Mono',monospace;}
+.open-tab-link{font-size:13px; color:var(--gold);}
+.open-tab-link a{color:var(--gold);}
+
+.criterion{margin-bottom:18px;}
+.criterion label{display:block; font-size:12px; text-transform:uppercase; letter-spacing:0.08em; color:var(--text-dim); margin-bottom:6px;}
+.stars{display:flex; gap:6px;}
+.star{
+  font-size:30px; line-height:1; cursor:pointer; color:var(--line);
+  transition: color .1s, transform .1s;
+  user-select:none;
+}
+.star.filled{color:var(--gold);}
+.star:hover{transform:scale(1.12);}
+
+textarea{
+  width:100%; background:var(--surface-2); border:1px solid var(--line); border-radius:3px;
+  color:var(--text); font-family:'Work Sans',sans-serif; font-size:13px; padding:10px; resize:vertical; min-height:56px;
+}
+textarea:focus{outline:1px solid var(--gold);}
+
+.btn{
+  font-family:'Bebas Neue', sans-serif;
+  letter-spacing:0.05em;
+  font-size:16px;
+  background: var(--gold);
+  color:#1A1408;
+  border:none; border-radius:3px;
+  padding:10px 22px;
+  cursor:pointer;
+  margin-top:4px;
+}
+.btn:hover{filter:brightness(1.08);}
+.btn.secondary{
+  background:none; border:1px solid var(--line); color:var(--text-dim);
+}
+.btn.secondary:hover{color:var(--text); border-color:var(--text-dim);}
+.btn:disabled{opacity:0.4; cursor:not-allowed;}
+
+input[type=text], input[type=password]{
+  background:var(--surface-2); border:1px solid var(--line); border-radius:3px;
+  color:var(--text); font-family:'Work Sans',sans-serif; font-size:14px; padding:9px 12px; width:100%;
+}
+input:focus{outline:1px solid var(--gold);}
+
+.name-gate{max-width:360px; margin:60px auto; text-align:center;}
+.name-gate .marquee{font-size:32px;}
+
+.saved-msg{color:var(--gold); font-size:12px; font-family:'IBM Plex Mono',monospace; margin-top:8px; height:16px;}
+
+.dq-box{
+  border:1px solid var(--line); border-radius:4px; padding:12px 14px; margin:18px 0 20px;
+  background:var(--surface-2);
+}
+.dq-box.dq-active{border-color:var(--velvet-bright); background:rgba(194,78,78,0.08);}
+.dq-checkbox{display:flex; align-items:flex-start; gap:10px; cursor:pointer; font-size:14px; color:var(--text); line-height:1.4;}
+.dq-checkbox input{width:16px; height:16px; margin-top:2px; accent-color:var(--velvet-bright); cursor:pointer;}
+.dq-tag{
+  display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:11px;
+  color:var(--velvet-bright); border:1px solid var(--velvet-bright); border-radius:2px;
+  padding:2px 6px; margin-left:8px; vertical-align:middle;
+}
+
+.podium{display:flex; gap:12px; align-items:flex-end; margin:24px 0 32px;}
+.podium-slot{flex:1; text-align:center; padding:16px 10px; border-radius:4px; border:1px solid var(--line);}
+.podium-slot.gold{background:linear-gradient(180deg, rgba(232,179,74,0.16), transparent); border-color:var(--gold);}
+.podium-slot.silver{background:linear-gradient(180deg, rgba(200,200,200,0.08), transparent);}
+.podium-slot.bronze{background:linear-gradient(180deg, rgba(194,78,78,0.1), transparent);}
+.rank-num{font-family:'Bebas Neue',sans-serif; font-size:34px; color:var(--gold);}
+.podium-slot .p-title{font-size:14px; margin:6px 0 2px; font-weight:600;}
+.podium-slot .p-score{font-family:'IBM Plex Mono',monospace; color:var(--text-dim); font-size:12px;}
+
+.result-row{display:flex; justify-content:space-between; align-items:center; padding:12px 0; border-bottom:1px solid var(--line);}
+.result-row:last-child{border-bottom:none;}
+.r-title{font-weight:600;}
+.r-meta{color:var(--text-dim); font-size:12px; font-family:'IBM Plex Mono',monospace;}
+.r-score{font-family:'IBM Plex Mono',monospace; color:var(--gold); font-size:18px;}
+
+.locked{text-align:center; padding:60px 20px; color:var(--text-dim);}
+.locked .marquee{font-size:30px; opacity:0.6;}
+
+.admin-gate{max-width:320px; margin:60px auto; text-align:center;}
+.field{margin-bottom:16px;}
+.field label{display:block; font-size:12px; text-transform:uppercase; letter-spacing:0.06em; color:var(--text-dim); margin-bottom:6px;}
+.toggle-row{display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-top:1px solid var(--line); margin-top:10px;}
+.switch{position:relative; width:44px; height:24px; background:var(--line); border-radius:12px; cursor:pointer; flex:0 0 auto;}
+.switch.on{background:var(--gold);}
+.switch .knob{position:absolute; top:2px; left:2px; width:20px; height:20px; background:var(--bg); border-radius:50%; transition:left .15s;}
+.switch.on .knob{left:22px;}
+.hint{color:var(--text-dim); font-size:12px; margin-top:6px; line-height:1.5;}
+.error{color:var(--velvet-bright); font-size:13px; margin-top:8px;}
+
+.empty{text-align:center; padding:50px 20px; color:var(--text-dim);}
+
+.setup-warning{
+  max-width:560px; margin:60px auto; text-align:center; padding:24px;
+  border:1px solid var(--velvet-bright); border-radius:4px; background:rgba(194,78,78,0.08);
+}
+.setup-warning code{background:var(--surface-2); padding:2px 6px; border-radius:2px; color:var(--gold); font-family:'IBM Plex Mono',monospace;}
+
+@media(max-width:520px){
+  .marquee{font-size:34px;}
+  .entry-title{font-size:22px;}
+  .podium{flex-direction:column;}
+}
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+
+<script>
+/* =========================================================================
+   CONFIG — paste your Google Apps Script Web App URL here after deploying
+   ========================================================================= */
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzDBZdPKuh4D7g3KGIbKto4qSyKdMOwyVecpsWYnxznV1KGfcFhO5c87TvQP9QPXE3Kbw/exec";
+
+/* =========================================================================
+   Everything below this line should not need editing.
+   ========================================================================= */
+
+const ADMIN_CODE = "clapboard24";
+const NAME_KEY = "quipJudgeName";
+
+let state = {
+  loaded: false,
+  view: 'judge',
+  entries: [],
+  reveal: false,
+  judgeName: null,
+  activeEntryId: null,
+  draft: {},
+  adminUnlocked: false,
+  csvText: '',
+  importMsg: '',
+  savedMsg: '',
+  resetMsg: '',
+  resetConfirming: false,
+  apiError: ''
+};
+
+async function api(action, payload){
+  const body = Object.assign({action}, payload||{});
+  const res = await fetch(SCRIPT_URL, {
+    method: 'POST',
+    headers: {'Content-Type': 'text/plain;charset=utf-8'},
+    body: JSON.stringify(body)
+  });
+  const data = await res.json();
+  if(data && data.error) throw new Error(data.error);
+  return data;
+}
+
+function esc(s){ return String(s==null?'':s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+async function init(){
+  if(!SCRIPT_URL || SCRIPT_URL.indexOf('PASTE_YOUR') === 0){
+    state.loaded = true;
+    state.apiError = 'setup';
+    render();
+    return;
+  }
+  try{
+    const [entriesRes, revealRes] = await Promise.all([api('getEntries'), api('getReveal')]);
+    state.entries = entriesRes.entries || [];
+    state.reveal = !!revealRes.reveal;
+  }catch(e){
+    state.apiError = e.message || 'Could not reach the backend.';
+  }
+  try{ state.judgeName = localStorage.getItem(NAME_KEY) || null; }catch(e){}
+  state.loaded = true;
+  render();
+  if(state.judgeName && state.entries.length) selectEntry(state.entries[0].id);
+}
+
+function renderSetupWarning(){
+  return `
+  <div class="setup-warning">
+    <div class="marquee" style="font-size:26px;">BACKEND NOT CONNECTED</div>
+    <p>This page needs a Google Apps Script URL before it will work.</p>
+    <p class="hint" style="text-align:left; max-width:460px; margin:14px auto 0;">
+      Open this HTML file in a text editor, find the line near the top that says<br>
+      <code>const SCRIPT_URL = "PASTE_YOUR_GOOGLE_APPS_SCRIPT_WEB_APP_URL_HERE";</code><br>
+      and replace the placeholder with the Web App URL you got from deploying the
+      Apps Script backend. Then re-save and re-upload this file.
+    </p>
+  </div>`;
+}
+
+function renderApiError(){
+  return `
+  <div class="setup-warning">
+    <div class="marquee" style="font-size:26px;">CAN'T REACH THE BACKEND</div>
+    <p>${esc(state.apiError)}</p>
+    <p class="hint">Double-check the Apps Script is deployed with "Who has access: Anyone", and that the URL pasted into this file is the "Web app URL", not the script editor URL.</p>
+  </div>`;
+}
+
+function renderNameGate(){
+  return `
+  <div class="name-gate">
+    <div class="marquee">Ready?</div>
+    <p class="sub">If returning from a previous session, enter the same name to resume judging.</p>
+    <input type="text" id="nameInput" placeholder="Your name" value="${esc(state.judgeName||'')}" />
+    <div style="height:12px"></div>
+    <button class="btn" onclick="submitName()">Take Your Seat</button>
+  </div>`;
+}
+
+window.submitName = function(){
+  const v = document.getElementById('nameInput').value.trim();
+  if(!v) return;
+  state.judgeName = v;
+  try{ localStorage.setItem(NAME_KEY, v); }catch(e){}
+  render();
+  if(state.entries.length) selectEntry(state.entries[0].id);
+};
+
+window.switchJudge = function(){
+  state.judgeName = null;
+  state.activeEntryId = null;
+  try{ localStorage.removeItem(NAME_KEY); }catch(e){}
+  render();
+};
+
+function renderTabs(){
+  return `
+  <div class="tabs">
+    <button class="tab ${state.view==='judge'?'active':''}" onclick="setView('judge')">Judge</button>
+    <button class="tab ${state.view==='results'?'active':''}" onclick="setView('results')">Results</button>
+    <button class="tab ${state.view==='admin'?'active':''}" onclick="setView('admin')">Admin</button>
+  </div>`;
+}
+
+window.setView = async function(v){
+  state.view = v;
+  render();
+  if(v === 'results'){
+    try{
+      const res = await api('getAllVotes');
+      state.allVotes = res.votes || [];
+    }catch(e){ state.apiError = e.message; }
+    render();
+  }
+};
+
+function frameForEntry(entry, isActive, isRated){
+  return `
+  <div class="frame ${isActive?'active':''} ${isRated?'rated':''} ${entry.disqualified?'disqualified':''}" onclick="selectEntry('${entry.id}')">
+    <div class="dot"></div>
+    <div class="fnum">ENTRY</div>
+    <div class="ftitle">${esc(String(entry.num).padStart(2,'0'))}</div>
+  </div>`;
+}
+
+async function selectEntry(id){
+  state.activeEntryId = id;
+  state.savedMsg = '';
+  render();
+  if(!state.judgeName) return;
+  try{
+    const res = await api('getVote', {entryId: id, judge: state.judgeName});
+    state.draft = res.vote ? {...res.vote} : {originality:0, artistry:0, technical:0, comment:''};
+  }catch(e){
+    state.draft = {originality:0, artistry:0, technical:0, comment:''};
+  }
+  render();
+}
+window.selectEntry = selectEntry;
+
+function starsRow(cat, value){
+  let out = '<div class="stars">';
+  for(let i=1;i<=5;i++){
+    out += `<span class="star ${i<=value?'filled':''}" onclick="setStar('${cat}',${i})">★</span>`;
+  }
+  out += '</div>';
+  return out;
+}
+
+window.setStar = function(cat, val){
+  state.draft[cat] = val;
+  render();
+};
+
+window.updateComment = function(val){
+  state.draft.comment = val;
+};
+
+window.saveDraft = async function(){
+  if(!state.activeEntryId || !state.judgeName) return;
+  const payload = {
+    entryId: state.activeEntryId,
+    judge: state.judgeName,
+    originality: state.draft.originality||0,
+    artistry: state.draft.artistry||0,
+    technical: state.draft.technical||0,
+    comment: state.draft.comment||''
+  };
+  try{
+    await api('saveVote', payload);
+    state.savedMsg = 'Saved.';
+  }catch(e){
+    state.savedMsg = 'Could not save — check your connection and try again.';
+  }
+  render();
+};
+
+function dqSection(entry){
+  const isDQ = !!entry.disqualified;
+  return `
+    <div class="dq-box ${isDQ?'dq-active':''}">
+      <label class="dq-checkbox">
+        <input type="checkbox" ${isDQ?'checked':''} onchange="toggleDisqualify(this.checked)">
+        Flag this entry as disqualified (doesn't meet technical specifications, violates Patreon community guidelines)
+      </label>
+    </div>`;
+}
+
+window.toggleDisqualify = async function(checked){
+  const entry = state.entries.find(e => e.id === state.activeEntryId);
+  if(!entry) return;
+  entry.disqualified = checked;
+  render();
+  try{
+    await api('setDisqualify', {id: entry.id, disqualified: checked});
+  }catch(e){
+    state.apiError = e.message;
+    render();
+  }
+};
+
+function renderJudgeView(){
+  if(!state.judgeName) return renderNameGate();
+  if(!state.entries.length){
+    return `<div class="empty"><div class="marquee" style="font-size:26px;opacity:.5">NO ENTRIES YET</div><p>Ask the contest admin to import the entry list.</p></div>`;
+  }
+  const active = state.entries.find(e => e.id === state.activeEntryId) || state.entries[0];
+  if(!state.activeEntryId) state.activeEntryId = active.id;
+
+  const filmstrip = state.entries.map(e => frameForEntry(e, e.id===active.id, false)).join('');
+
+  return `
+    <div class="filmstrip">${filmstrip}</div>
+    <div class="card now-screening">
+      <div class="entry-title">Entry ${esc(String(active.num).padStart(2,'0'))} ${active.disqualified?'<span class="dq-tag">DISQUALIFIED</span>':''}</div>
+      <div class="entry-meta open-tab-link">
+        ${active.link ? '<a href="'+esc(active.link)+'" target="_blank" rel="noopener">Watch entry ↗</a>' : 'No link on file'}
+      </div>
+      ${dqSection(active)}
+
+      <div class="criterion">
+        <label>Originality / Creativity — 40%</label>
+        ${starsRow('originality', state.draft.originality||0)}
+      </div>
+      <div class="criterion">
+        <label>Artistry / Emotional Resonance — 40%</label>
+        ${starsRow('artistry', state.draft.artistry||0)}
+      </div>
+      <div class="criterion">
+        <label>Technical Execution — 20%</label>
+        ${starsRow('technical', state.draft.technical||0)}
+      </div>
+      <div class="criterion">
+        <label>Notes (optional, private)</label>
+        <textarea oninput="updateComment(this.value)" placeholder="Any thoughts on this entry...">${esc(state.draft.comment||'')}</textarea>
+      </div>
+      <button class="btn" onclick="saveDraft()">Save Rating</button>
+      <div class="saved-msg">${state.savedMsg}</div>
+    </div>
+    <p class="hint">Judging as <strong>${esc(state.judgeName)}</strong>. Scores stay private until the admin reveals results. · <a href="#" onclick="switchJudge();return false;" style="color:var(--text-dim)">Switch judge</a></p>
+  `;
+}
+
+function computeAverages(){
+  const byEntry = {};
+  for(const v of (state.allVotes||[])){
+    if(!v || !v.entryId) continue;
+    byEntry[v.entryId] = byEntry[v.entryId] || [];
+    byEntry[v.entryId].push(v);
+  }
+  return state.entries.filter(e => !e.disqualified).map(e => {
+    const votes = byEntry[e.id] || [];
+    const n = votes.length;
+    const avg = (key) => n ? (votes.reduce((s,v)=>s+(Number(v[key])||0),0)/n) : 0;
+    const o = avg('originality'), a = avg('artistry'), t = avg('technical');
+    const overall = n ? (o*0.4 + a*0.4 + t*0.2) : 0;
+    return {entry:e, n, originality:o, artistry:a, technical:t, overall};
+  }).sort((x,y)=> y.overall - x.overall);
+}
+
+function renderResultsView(){
+  if(!state.reveal){
+    return `<div class="locked"><div class="marquee">RESULTS SEALED</div><p>Scores stay hidden until the admin reveals them.</p></div>`;
+  }
+  if(!state.entries.length){
+    return `<div class="empty">No entries yet.</div>`;
+  }
+  const ranked = computeAverages();
+  const top3 = ranked.slice(0,3);
+  const podium = ['gold','silver','bronze'].map((cls,i) => {
+    const r = top3[i];
+    return r ? `
+      <div class="podium-slot ${cls}">
+        <div class="rank-num">${i+1}</div>
+        <div class="p-title">Entry ${esc(String(r.entry.num).padStart(2,'0'))}</div>
+        <div class="p-score">${r.overall.toFixed(2)} avg · ${r.n} vote${r.n===1?'':'s'}</div>
+      </div>` : '';
+  }).join('');
+
+  const rows = ranked.map((r,i) => `
+    <div class="result-row">
+      <div>
+        <div class="r-title">${i+1}. Entry ${esc(String(r.entry.num).padStart(2,'0'))} ${r.entry.link?('<a href="'+esc(r.entry.link)+'" target="_blank" rel="noopener" style="color:var(--gold);font-size:12px;font-weight:400;">watch →</a>'):''}</div>
+        <div class="r-meta">Originality ${r.originality.toFixed(1)} (40%) · Artistry ${r.artistry.toFixed(1)} (40%) · Technical ${r.technical.toFixed(1)} (20%) · ${r.n} vote${r.n===1?'':'s'}</div>
+      </div>
+      <div class="r-score">${r.overall.toFixed(2)}</div>
+    </div>`).join('');
+
+  const dqList = state.entries.filter(e => e.disqualified);
+  const dqRows = dqList.map(e => `
+    <div class="result-row">
+      <div><div class="r-title">Entry ${esc(String(e.num).padStart(2,'0'))}</div></div>
+    </div>`).join('');
+
+  return `
+    <div class="card" style="margin-bottom:20px;">
+      <div class="entry-meta" style="margin-bottom:0;">TOP THREE</div>
+      <div class="podium">${podium}</div>
+    </div>
+    <div class="card">
+      <div class="entry-meta" style="margin-bottom:10px;">FULL RANKING</div>
+      ${rows || '<div class="empty" style="padding:20px;">No eligible entries yet.</div>'}
+    </div>
+    ${dqList.length ? `
+    <div class="card" style="margin-top:16px; border-color:var(--velvet-bright);">
+      <div class="entry-meta" style="margin-bottom:10px; color:var(--velvet-bright);">DISQUALIFIED — excluded from ranking</div>
+      ${dqRows}
+    </div>` : ''}
+  `;
+}
+
+function renderAdminGate(){
+  return `
+  <div class="admin-gate">
+    <div class="marquee" style="font-size:28px;">ADMIN</div>
+    <p class="sub">Enter the passcode to manage entries and results.</p>
+    <input type="password" id="passInput" placeholder="Passcode" />
+    <div style="height:10px"></div>
+    <button class="btn" onclick="tryAdmin()">Enter</button>
+    <div id="adminErr" class="error"></div>
+  </div>`;
+}
+
+window.tryAdmin = function(){
+  const v = document.getElementById('passInput').value;
+  if(v === ADMIN_CODE){
+    state.adminUnlocked = true;
+    render();
+  } else {
+    document.getElementById('adminErr').textContent = 'Incorrect passcode.';
+  }
+};
+
+function renderAdminView(){
+  if(!state.adminUnlocked) return renderAdminGate();
+  const count = state.entries.length;
+  const dqCount = state.entries.filter(e => e.disqualified).length;
+  return `
+    <div class="card">
+      <div class="entry-meta" style="margin-bottom:6px;">ENTRY LIST — ${count} entr${count===1?'y':'ies'} loaded${dqCount ? ` · <span style="color:var(--velvet-bright)">${dqCount} disqualified</span>` : ''}</div>
+      <p class="hint">Paste one entry link per line. Entries stay anonymous to judges — labeled only as Entry 01, Entry 02, etc. in the order you paste them. Re-pasting an updated list only adds new links; it never removes existing entries or votes, so it's safe to add more as they roll in. Judges can flag an entry as disqualified from its judging page.</p>
+      <div class="field">
+        <label>Paste entry links (one per line)</label>
+        <textarea id="csvBox" style="min-height:140px;" placeholder="https://...
+https://...
+https://...">${esc(state.csvText)}</textarea>
+      </div>
+      <button class="btn" onclick="importCsv()">Import / Add Entries</button>
+      <div class="saved-msg">${state.importMsg}</div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <div class="toggle-row" style="border-top:none; padding-top:0;">
+        <div>
+          <div style="font-weight:600;">Reveal results to judges</div>
+          <div class="hint" style="margin-top:2px;">Turn on once all judging is complete. Judges can't see scores until this is on.</div>
+        </div>
+        <div class="switch ${state.reveal?'on':''}" onclick="toggleReveal()"><div class="knob"></div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px; border-color:var(--velvet-bright);">
+      <div style="font-weight:600; color:var(--velvet-bright);">Danger Zone</div>
+      <p class="hint" style="margin-top:4px;">Permanently erases every entry, vote, and the reveal setting in the Google Sheet — use this to start fresh for a new contest. This cannot be undone.</p>
+      ${state.resetConfirming ? `
+        <div class="field" style="margin-top:12px;">
+          <label>Type RESET (all caps) to confirm</label>
+          <input type="text" id="resetConfirmInput" placeholder="RESET" autocomplete="off" />
+        </div>
+        <button class="btn" style="background:var(--velvet-bright); color:#fff;" onclick="confirmResetContestData()">Confirm Reset</button>
+        <button class="btn secondary" style="margin-left:8px;" onclick="cancelReset()">Cancel</button>
+      ` : `
+        <button class="btn" style="background:var(--velvet-bright); color:#fff; margin-top:6px;" onclick="startReset()">Reset All Contest Data</button>
+      `}
+      <div class="saved-msg">${state.resetMsg||''}</div>
+    </div>
+  `;
+}
+
+window.toggleReveal = async function(){
+  state.reveal = !state.reveal;
+  render();
+  try{ await api('setReveal', {reveal: state.reveal}); }
+  catch(e){ state.apiError = e.message; render(); }
+};
+
+window.importCsv = async function(){
+  const box = document.getElementById('csvBox');
+  const text = box.value.trim();
+  if(!text){ state.importMsg = 'Paste some links first.'; render(); return; }
+  const links = text.split(/\r?\n/).map(l=>l.trim()).filter(Boolean);
+  state.importMsg = 'Importing...';
+  render();
+  try{
+    const res = await api('addEntries', {links});
+    state.entries = res.entries || [];
+    state.csvText = '';
+    state.importMsg = `Added ${res.added||0} new entr${res.added===1?'y':'ies'}. Total entries: ${state.entries.length}.`;
+  }catch(e){
+    state.importMsg = 'Import failed: ' + e.message;
+  }
+  render();
+};
+
+window.startReset = function(){ state.resetConfirming = true; state.resetMsg=''; render(); };
+window.cancelReset = function(){ state.resetConfirming = false; state.resetMsg=''; render(); };
+
+window.confirmResetContestData = async function(){
+  const input = document.getElementById('resetConfirmInput');
+  const val = input ? input.value.trim() : '';
+  if(val !== 'RESET'){
+    state.resetMsg = 'Type RESET exactly (all caps) to confirm.';
+    render();
+    return;
+  }
+  state.resetMsg = 'Wiping contest data...';
+  render();
+  try{
+    await api('resetAll');
+    state.entries = [];
+    state.allVotes = [];
+    state.reveal = false;
+    state.activeEntryId = null;
+    state.resetConfirming = false;
+    state.resetMsg = 'All contest data has been wiped. Ready for a new contest.';
+  }catch(e){
+    state.resetMsg = 'Something went wrong during reset: ' + e.message;
+  }
+  render();
+};
+
+function render(){
+  const app = document.getElementById('app');
+  if(!state.loaded){
+    app.innerHTML = `<div class="empty"><div class="marquee" style="font-size:30px;opacity:.6">LOADING...</div></div>`;
+    return;
+  }
+  if(state.apiError === 'setup'){
+    app.innerHTML = renderSetupWarning();
+    return;
+  }
+
+  let body = '';
+  if(state.view === 'judge') body = renderJudgeView();
+  else if(state.view === 'results') body = renderResultsView();
+  else body = renderAdminView();
+
+  app.innerHTML = `
+    <div class="marquee">DIGITAL SPAGHETTI QUIP CONTEST JUDGING</div>
+    <div class="sub">Originality/Creativity 40% · Artistry/Emotional Resonance 40% · Technical Execution 20%</div>
+    ${renderTabs()}
+    ${state.apiError && state.apiError !== 'setup' ? renderApiError() : ''}
+    ${body}
+  `;
+}
+
+init();
+</script>
+</body>
+</html>
