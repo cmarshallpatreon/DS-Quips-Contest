@@ -236,11 +236,22 @@ let state = {
   apiError: ''
 };
 
-async function api(action, payload){
+async function api(action, payload, attempt){
+  attempt = attempt || 1;
   const body = Object.assign({action}, payload||{});
   const url = SCRIPT_URL + '?payload=' + encodeURIComponent(JSON.stringify(body));
   const res = await fetch(url, { method: 'GET' });
-  const data = await res.json();
+  const text = await res.text();
+  let data;
+  try{
+    data = JSON.parse(text);
+  }catch(e){
+    if(attempt < 4){
+      await new Promise(r => setTimeout(r, 350 * attempt));
+      return api(action, payload, attempt + 1);
+    }
+    throw new Error('The backend gave an unexpected response after several tries. This is usually a temporary Google-side hiccup — please try again in a moment.');
+  }
   if(data && data.error) throw new Error(data.error);
   return data;
 }
