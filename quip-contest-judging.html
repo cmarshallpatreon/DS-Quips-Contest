@@ -110,6 +110,9 @@ body{
 }
 .star.filled{color:var(--gold);}
 .star:hover{transform:scale(1.12);}
+.stars-disabled{opacity:0.3; pointer-events:none;}
+.stars-disabled .star:hover{transform:none;}
+.loading-note{color:var(--text-dim); font-size:12px; font-family:'IBM Plex Mono',monospace; margin:-4px 0 14px;}
 
 textarea{
   width:100%; background:var(--surface-2); border:1px solid var(--line); border-radius:3px;
@@ -361,22 +364,23 @@ function frameForEntry(entry, isActive, isRated){
 async function selectEntry(id){
   state.activeEntryId = id;
   state.savedMsg = '';
+  state.draft = {originality:0, artistry:0, technical:0, comment:'', loading:true};
   render();
   if(!state.judgeName) return;
   try{
     const res = await api('getVote', {entryId: id, judge: state.judgeName});
-    state.draft = res.vote ? {...res.vote} : {originality:0, artistry:0, technical:0, comment:''};
+    state.draft = res.vote ? {...res.vote, loading:false} : {originality:0, artistry:0, technical:0, comment:'', loading:false};
   }catch(e){
-    state.draft = {originality:0, artistry:0, technical:0, comment:''};
+    state.draft = {originality:0, artistry:0, technical:0, comment:'', loading:false};
   }
   render();
 }
 window.selectEntry = selectEntry;
 
-function starsRow(cat, value){
-  let out = '<div class="stars">';
+function starsRow(cat, value, disabled){
+  let out = `<div class="stars ${disabled?'stars-disabled':''}">`;
   for(let i=1;i<=5;i++){
-    out += `<span class="star ${i<=value?'filled':''}" onclick="setStar('${cat}',${i})">★</span>`;
+    out += `<span class="star ${i<=value?'filled':''}" ${disabled ? '' : `onclick="setStar('${cat}',${i})"`}>★</span>`;
   }
   out += '</div>';
   return out;
@@ -452,24 +456,25 @@ function renderJudgeView(){
         ${active.link ? '<a href="'+esc(active.link)+'" target="_blank" rel="noopener">Watch entry ↗</a>' : 'No link on file'}
       </div>
       ${dqSection(active)}
+      ${state.draft.loading ? '<div class="loading-note">Loading your rating for this entry...</div>' : ''}
 
       <div class="criterion">
         <label>Originality / Creativity — 40%</label>
-        ${starsRow('originality', state.draft.originality||0)}
+        ${starsRow('originality', state.draft.originality||0, state.draft.loading)}
       </div>
       <div class="criterion">
         <label>Artistry / Emotional Resonance — 40%</label>
-        ${starsRow('artistry', state.draft.artistry||0)}
+        ${starsRow('artistry', state.draft.artistry||0, state.draft.loading)}
       </div>
       <div class="criterion">
         <label>Technical Execution — 20%</label>
-        ${starsRow('technical', state.draft.technical||0)}
+        ${starsRow('technical', state.draft.technical||0, state.draft.loading)}
       </div>
       <div class="criterion">
         <label>Notes (optional, private)</label>
-        <textarea oninput="updateComment(this.value)" placeholder="Any thoughts on this entry...">${esc(state.draft.comment||'')}</textarea>
+        <textarea oninput="updateComment(this.value)" placeholder="Any thoughts on this entry..." ${state.draft.loading?'disabled':''}>${esc(state.draft.comment||'')}</textarea>
       </div>
-      <button class="btn" onclick="saveDraft()">Save Rating</button>
+      <button class="btn" onclick="saveDraft()" ${state.draft.loading?'disabled':''}>Save Rating</button>
       <div class="saved-msg">${state.savedMsg}</div>
     </div>
     <p class="hint">Judging as <strong>${esc(state.judgeName)}</strong>. Scores stay private until the admin reveals results. · <a href="#" onclick="switchJudge();return false;" style="color:var(--text-dim)">Switch judge</a></p>
