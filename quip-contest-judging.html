@@ -230,6 +230,9 @@ let state = {
   judgeName: null,
   activeEntryId: null,
   draft: {},
+  myVotes: {},
+  nameGateLoading: false,
+  saving: false,
   adminUnlocked: false,
   csvText: '',
   importMsg: '',
@@ -278,7 +281,26 @@ async function init(){
   try{ state.judgeName = localStorage.getItem(NAME_KEY) || null; }catch(e){}
   state.loaded = true;
   render();
-  if(state.judgeName && state.entries.length) selectEntry(state.entries[0].id);
+  if(state.judgeName && state.entries.length){
+    state.nameGateLoading = true;
+    render();
+    await loadMyVotes();
+    state.nameGateLoading = false;
+    selectEntry(state.entries[0].id);
+  }
+}
+
+async function loadMyVotes(){
+  state.myVotes = {};
+  if(!state.judgeName) return;
+  try{
+    const res = await api('getAllVotes');
+    (res.votes||[]).forEach(v => {
+      if(v.judge === state.judgeName) state.myVotes[v.entryId] = v;
+    });
+  }catch(e){
+    state.apiError = e.message;
+  }
 }
 
 function renderSetupWarning(){
@@ -309,19 +331,23 @@ function renderNameGate(){
   <div class="name-gate">
     <div class="marquee">Ready?</div>
     <p class="sub">If returning from a previous session, enter the same name to resume judging.</p>
-    <input type="text" id="nameInput" placeholder="Your name" value="${esc(state.judgeName||'')}" />
+    <input type="text" id="nameInput" placeholder="Your name" value="${esc(state.judgeName||'')}" ${state.nameGateLoading?'disabled':''} />
     <div style="height:12px"></div>
-    <button class="btn" onclick="submitName()">Take Your Seat</button>
+    <button class="btn" onclick="submitName()" ${state.nameGateLoading?'disabled':''}>${state.nameGateLoading?'Loading your data...':'Take Your Seat'}</button>
   </div>`;
 }
 
-window.submitName = function(){
+window.submitName = async function(){
   const v = document.getElementById('nameInput').value.trim();
   if(!v) return;
   state.judgeName = v;
   try{ localStorage.setItem(NAME_KEY, v); }catch(e){}
+  state.nameGateLoading = true;
   render();
+  await loadMyVotes();
+  state.nameGateLoading = false;
   if(state.entries.length) selectEntry(state.entries[0].id);
+  else render();
 };
 
 window.switchJudge = function(){
@@ -361,26 +387,19 @@ function frameForEntry(entry, isActive, isRated){
   </div>`;
 }
 
-async function selectEntry(id){
+function selectEntry(id){
   state.activeEntryId = id;
   state.savedMsg = '';
-  state.draft = {originality:0, artistry:0, technical:0, comment:'', loading:true};
-  render();
-  if(!state.judgeName) return;
-  try{
-    const res = await api('getVote', {entryId: id, judge: state.judgeName});
-    state.draft = res.vote ? {...res.vote, loading:false} : {originality:0, artistry:0, technical:0, comment:'', loading:false};
-  }catch(e){
-    state.draft = {originality:0, artistry:0, technical:0, comment:'', loading:false};
-  }
+  const v = state.myVotes[id];
+  state.draft = v ? {...v} : {originality:0, artistry:0, technical:0, comment:''};
   render();
 }
 window.selectEntry = selectEntry;
 
-function starsRow(cat, value, disabled){
-  let out = `<div class="stars ${disabled?'stars-disabled':''}">`;
+function starsRow(cat, value){
+  let out = '<div class="stars">';
   for(let i=1;i<=5;i++){
-    out += `<span class="star ${i<=value?'filled':''}" ${disabled ? '' : `onclick="setStar('${cat}',${i})"`}>★</span>`;
+    out += `<span class="star ${i<=value?'filled':''}" onclick="setStar('${cat}',${i})">★</span>`;
   }
   out += '</div>';
   return out;
@@ -405,12 +424,17 @@ window.saveDraft = async function(){
     technical: state.draft.technical||0,
     comment: state.draft.comment||''
   };
+  state.saving = true;
+  state.savedMsg = '';
+  render();
   try{
     await api('saveVote', payload);
-    state.savedMsg = 'Saved.';
+    state.myVotes[state.activeEntryId] = payload;
+    state.savedMsg = 'Vote cast.';
   }catch(e){
     state.savedMsg = 'Could not save — check your connection and try again.';
   }
+  state.saving = false;
   render();
 };
 
@@ -439,14 +463,14 @@ window.toggleDisqualify = async function(checked){
 };
 
 function renderJudgeView(){
-  if(!state.judgeName) return renderNameGate();
+  if(!state.judgeName || state.nameGateLoading) return renderNameGate();
   if(!state.entries.length){
     return `<div class="empty"><div class="marquee" style="font-size:26px;opacity:.5">NO ENTRIES YET</div><p>Ask the contest admin to import the entry list.</p></div>`;
   }
   const active = state.entries.find(e => e.id === state.activeEntryId) || state.entries[0];
   if(!state.activeEntryId) state.activeEntryId = active.id;
 
-  const filmstrip = state.entries.map(e => frameForEntry(e, e.id===active.id, false)).join('');
+  const filmstrip = state.entries.map(e => frameForEntry(e, e.id===active.id, !!state.myVotes[e.id])).join('');
 
   return `
     <div class="filmstrip">${filmstrip}</div>
@@ -456,25 +480,24 @@ function renderJudgeView(){
         ${active.link ? '<a href="'+esc(active.link)+'" target="_blank" rel="noopener">Watch entry ↗</a>' : 'No link on file'}
       </div>
       ${dqSection(active)}
-      ${state.draft.loading ? '<div class="loading-note">Loading your rating for this entry...</div>' : ''}
 
       <div class="criterion">
         <label>Originality / Creativity — 40%</label>
-        ${starsRow('originality', state.draft.originality||0, state.draft.loading)}
+        ${starsRow('originality', state.draft.originality||0)}
       </div>
       <div class="criterion">
         <label>Artistry / Emotional Resonance — 40%</label>
-        ${starsRow('artistry', state.draft.artistry||0, state.draft.loading)}
+        ${starsRow('artistry', state.draft.artistry||0)}
       </div>
       <div class="criterion">
         <label>Technical Execution — 20%</label>
-        ${starsRow('technical', state.draft.technical||0, state.draft.loading)}
+        ${starsRow('technical', state.draft.technical||0)}
       </div>
       <div class="criterion">
         <label>Notes (optional, private)</label>
-        <textarea oninput="updateComment(this.value)" placeholder="Any thoughts on this entry..." ${state.draft.loading?'disabled':''}>${esc(state.draft.comment||'')}</textarea>
+        <textarea oninput="updateComment(this.value)" placeholder="Any thoughts on this entry...">${esc(state.draft.comment||'')}</textarea>
       </div>
-      <button class="btn" onclick="saveDraft()" ${state.draft.loading?'disabled':''}>Save Rating</button>
+      <button class="btn" onclick="saveDraft()" ${state.saving?'disabled':''}>${state.saving?'Saving...':'Save Rating'}</button>
       <div class="saved-msg">${state.savedMsg}</div>
     </div>
     <p class="hint">Judging as <strong>${esc(state.judgeName)}</strong>. Scores stay private until the admin reveals results. · <a href="#" onclick="switchJudge();return false;" style="color:var(--text-dim)">Switch judge</a></p>
